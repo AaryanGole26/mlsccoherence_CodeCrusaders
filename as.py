@@ -1,10 +1,30 @@
 import csv
 import pyttsx3
+import speech_recognition as sr
 
 def text_to_speech(text):
     engine = pyttsx3.init()
     engine.say(text)
     engine.runAndWait()
+
+def recognize_speech():
+    recognizer = sr.Recognizer()
+
+    with sr.Microphone() as source:
+        print("Listening...")
+        recognizer.adjust_for_ambient_noise(source)  # Adjust for ambient noise
+        audio = recognizer.listen(source)
+
+    try:
+        print("Recognizing...")
+        text = recognizer.recognize_google(audio)
+        return text if text else ""  # Return empty string if no speech is recognized
+    except sr.UnknownValueError:
+        print("Could not understand audio. Please speak clearly and try again.")
+        return ""  # Return empty string if no speech is recognized
+    except sr.RequestError as e:
+        print(f"Error fetching results; {e}")
+        return ""  # Return empty string if no speech is recognized
 
 def load_issues_from_csv(csv_file):
     issues = {}
@@ -21,7 +41,7 @@ def get_issue_category(ivr_responses):
         print(f"{index}. {category}")
     while True:
         try:
-            selected_index = int(input("Enter the number corresponding to the category: "))
+            selected_index = int(input("Enter your choice: "))  # Accept input from keyboard
             if 1 <= selected_index <= len(ivr_responses):
                 selected_category = list(ivr_responses.keys())[selected_index - 1]
                 return selected_category
@@ -38,7 +58,7 @@ def get_issue(ivr_responses, selected_category):
         print(f"{index}. {issue}")
     while True:
         try:
-            selected_index = int(input("Enter the number corresponding to the issue: "))
+            selected_index = int(input("Enter your choice: "))  # Accept input from keyboard
             if 1 <= selected_index <= len(issues):
                 return issues[selected_index - 1]
             else:
@@ -53,20 +73,23 @@ def main():
     print("Welcome to the Virtual Assistant.")
     text_to_speech("Welcome to the Virtual Assistant, this is Max. What's your name?")
 
-    name = input("What's your name? ")
+    name = recognize_speech()
     text_to_speech(f"Nice to meet you, {name}!")
 
     while True:
         text_to_speech(f"How old are you?")
-        age_input = input("How old are you? ")
+        age = recognize_speech()
         try:
-            age = int(age_input)
-            break  # Break out of loop if input is successfully converted to an integer
+            age = int(age)
+            if age < 0 or age > 150:
+                text_to_speech("Please provide a valid age between 0 and 150.")
+            else:
+                break  # Break out of loop if input is successfully converted to an integer
         except ValueError:
-            print("Please enter a valid integer for age.")
+            text_to_speech("Please enter a valid integer for age.")
 
     text_to_speech(f"Where are you from?")
-    location = input("Where are you from? ")
+    location = recognize_speech()
 
     # Define IVR responses (category: [issues])
     ivr_responses = {
@@ -93,4 +116,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
