@@ -19,14 +19,14 @@ def speech_to_text():
 
     try:
         print("Transcribing...")
-        text = recognizer.recognize_google(audio)
+        text = recognizer.recognize_sphinx(audio)  # Use the Sphinx recognizer
         print("You said:", text)
         return text
     except sr.UnknownValueError:
         print("Sorry, I couldn't understand what you said.")
         return ""
     except sr.RequestError as e:
-        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        print("Speech recognition service error; {0}".format(e))
         return ""
 
 def analyze_intent(text):
@@ -40,17 +40,27 @@ def analyze_intent(text):
 
 def extract_information(intent):
     if intent == "warranty_claim":
-        full_name = input("What is your full name? ")
-        contact_info = input("What is your contact information? ")
-        address = input("What is your address? ")
-        issue_details = input("Please describe the technical issue: ")
-        preferred_time = input("What is your preferred date and time for technician visit? ")
+        speak("Please provide your full name.")
+        full_name = speech_to_text()  # Retrieve full name through speech
+        speak("Please provide your contact information.")
+        contact_info = speech_to_text()  # Retrieve contact information through speech
+        speak("Please provide your address.")
+        address = speech_to_text()  # Retrieve address through speech
+        speak("Please describe the technical issue.")
+        issue_details = speech_to_text()  # Retrieve issue details through speech
+        speak("What is your preferred date and time for technician visit?")
+        preferred_time = speech_to_text()  # Retrieve preferred time through speech
     elif intent == "technical_issue":
-        full_name = input("What is your full name? ")
-        contact_info = input("What is your contact information? ")
-        address = input("What is your address? ")
-        issue_details = input("Please describe the technical issue: ")
-        preferred_time = input("What is your preferred date and time for technician visit? ")
+        speak("Please provide your full name.")
+        full_name = speech_to_text()  # Retrieve full name through speech
+        speak("Please provide your contact information.")
+        contact_info = speech_to_text()  # Retrieve contact information through speech
+        speak("Please provide your address.")
+        address = speech_to_text()  # Retrieve address through speech
+        speak("Please describe the technical issue.")
+        issue_details = speech_to_text()  # Retrieve issue details through speech
+        speak("What is your preferred date and time for technician visit?")
+        preferred_time = speech_to_text()  # Retrieve preferred time through speech
     else:
         # Default values
         full_name = ""
@@ -75,12 +85,13 @@ if __name__ == "__main__":
         if audio_text:
             intent = analyze_intent(audio_text)
             print("Recognized Intent:", intent)
+            params = {"q": audio_text}  # Include the audio text in the params
             if intent == "warranty claim":
-                speak("What is your full name?")
+                speak("Please provide your full name.")
                 full_name = speech_to_text()
-                speak("What is your contact information?")
+                speak("Please provide your contact information.")
                 contact_info = speech_to_text()
-                speak("What is your address?")
+                speak("Please provide your address.")
                 address = speech_to_text()
                 speak("Thank you. Your information has been recorded.")
             elif intent == "technical issue":
