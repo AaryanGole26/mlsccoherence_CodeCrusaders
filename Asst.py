@@ -1,15 +1,33 @@
 import speech_recognition as sr
 import pyttsx3
 import requests
+import json
+import os
 
-# Set up Wit.ai access token
+
 WIT_ACCESS_TOKEN = "XZF3P3IDPPTU2YG5O6FUIU36E6654G77"
 
-# Initialize speech recognizer
+
 recognizer = sr.Recognizer()
 
 # Initialize speech synthesizer
 engine = pyttsx3.init()
+
+# Initialize a list to store user data
+all_user_data = []
+
+# Function to load existing JSON data from file
+def load_existing_data():
+    if os.path.exists("user_data.json"):
+        with open("user_data.json", "r") as json_file:
+            return json.load(json_file)
+    else:
+        return []
+
+# Function to save all user data to JSON file
+def save_user_data():
+    with open("user_data.json", "w") as json_file:
+        json.dump(all_user_data, json_file, indent=4)
 
 def speech_to_text():
     with sr.Microphone() as source:
@@ -19,7 +37,7 @@ def speech_to_text():
 
     try:
         print("Transcribing...")
-        text = recognizer.recognize_google(audio)  
+        text = recognizer.recognize_google(audio) 
         print("You said:", text)
         return text
     except sr.UnknownValueError:
@@ -43,22 +61,22 @@ def extract_information(intent):
         speak("Please provide your full name.")
         full_name = speech_to_text()  
         speak("Please provide your contact information.")
-        contact_info = speech_to_text()  
+        contact_info = speech_to_text() 
         speak("Please provide your address.")
-        address = speech_to_text() 
+        address = speech_to_text()  
         speak("Please describe the technical issue.")
         issue_details = speech_to_text()  
         speak("What is your preferred date and time for technician visit?")
-        preferred_time = speech_to_text() 
+        preferred_time = speech_to_text()  
     elif intent == "technical_issue":
         speak("Please provide your full name.")
-        full_name = speech_to_text()  
+        full_name = speech_to_text() 
         speak("Please provide your contact information.")
-        contact_info = speech_to_text() 
+        contact_info = speech_to_text()  
         speak("Please provide your address.")
-        address = speech_to_text() 
+        address = speech_to_text()  
         speak("Please describe the technical issue.")
-        issue_details = speech_to_text() 
+        issue_details = speech_to_text()  
         speak("What is your preferred date and time for technician visit?")
         preferred_time = speech_to_text()  
     else:
@@ -76,17 +94,21 @@ def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-# Main function
+# Inside the main function
 if __name__ == "__main__":
+    all_user_data = []
+    all_user_data.extend(load_existing_data())  # Load existing user data
+    
     while True:
         speak("Press Enter to start speaking...")
         input("Press Enter to start speaking...")
         audio_text = speech_to_text()
+        print("Recognized Text:", audio_text)  # Print the recognized text for debugging
         if audio_text:
             intent = analyze_intent(audio_text)
             print("Recognized Intent:", intent)
-            params = {"q": audio_text}  
-            if intent == "warranty claim":
+            params = {"q": audio_text}  # Include the audio text in the params
+            if intent == "warranty_claim":
                 speak("Please provide your full name.")
                 full_name = speech_to_text()
                 speak("Please provide your contact information.")
@@ -94,7 +116,7 @@ if __name__ == "__main__":
                 speak("Please provide your address.")
                 address = speech_to_text()
                 speak("Thank you. Your information has been recorded.")
-            elif intent == "technical issue":
+            elif intent == "technical_issue":
                 speak("Please describe the technical issue.")
                 issue_details = speech_to_text()
                 speak("What is your preferred date and time for technician visit?")
@@ -103,11 +125,18 @@ if __name__ == "__main__":
             else:
                 speak("Sorry, I couldn't understand your request.")
 
-            # Extract information based on intent and print it
+            # Extract information based on intent and append it to the list
             full_name, contact_info, address, issue_details, preferred_time = extract_information(intent)
-            print("Extracted Information:")
-            print("Full Name:", full_name)
-            print("Contact Information:", contact_info)
-            print("Address:", address)
-            print("Issue Details:", issue_details)
-            print("Preferred Time:", preferred_time)
+            user_data = {
+                "intent": intent,
+                "full_name": full_name,
+                "contact_info": contact_info,
+                "address": address,
+                "issue_details": issue_details,
+                "preferred_time": preferred_time
+            }
+            all_user_data.append(user_data)
+
+            # Save all user data to the JSON file
+            save_user_data()
+
