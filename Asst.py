@@ -1,50 +1,37 @@
-import speech_recognition as sr
+import tkinter as tk
+from tkinter import scrolledtext
+from tkinter import ttk
+from PIL import Image, ImageTk
 import pyttsx3
+import speech_recognition as sr
 import requests
 import json
-import os
-
 
 WIT_ACCESS_TOKEN = "XZF3P3IDPPTU2YG5O6FUIU36E6654G77"
 
-
 recognizer = sr.Recognizer()
-
-# Initialize speech synthesizer
 engine = pyttsx3.init()
-
-# Initialize a list to store user data
-all_user_data = []
-
-# Function to load existing JSON data from file
-def load_existing_data():
-    if os.path.exists("user_data.json"):
-        with open("user_data.json", "r") as json_file:
-            return json.load(json_file)
-    else:
-        return []
-
-# Function to save all user data to JSON file
-def save_user_data():
-    with open("user_data.json", "w") as json_file:
-        json.dump(all_user_data, json_file, indent=4)
 
 def speech_to_text():
     with sr.Microphone() as source:
-        print("Listening...")
+        response_text.insert(tk.END, "Listening...\n", "bold")
+        response_text.see(tk.END)
+        root.update()
         recognizer.adjust_for_ambient_noise(source, duration=1)
         audio = recognizer.listen(source)
 
     try:
-        print("Transcribing...")
-        text = recognizer.recognize_google(audio) 
-        print("You said:", text)
+        response_text.insert(tk.END, "Transcribing...\n", "bold")
+        response_text.see(tk.END)
+        root.update()
+        text = recognizer.recognize_google(audio)
+        response_text.insert(tk.END, f"You said: {text}\n", "normal")
         return text
     except sr.UnknownValueError:
-        print("Sorry, I couldn't understand what you said.")
+        response_text.insert(tk.END, "Sorry, I couldn't understand what you said.\n", "normal")
         return ""
     except sr.RequestError as e:
-        print("Speech recognition service error; {0}".format(e))
+        response_text.insert(tk.END, f"Speech recognition service error; {e}\n", "normal")
         return ""
 
 def analyze_intent(text):
@@ -52,35 +39,45 @@ def analyze_intent(text):
     params = {"q": text}
     response = requests.get("https://api.wit.ai/message", headers=headers, params=params)
     data = response.json()
-    print("Wit.ai Response:", data)
     intent = data['intents'][0]['name'] if data.get('intents') else "Unknown"
     return intent
 
 def extract_information(intent):
     if intent == "warranty_claim":
         speak("Please provide your full name.")
-        full_name = speech_to_text()  
+        full_name = speech_to_text()
         speak("Please provide your contact information.")
-        contact_info = speech_to_text() 
+        contact_info = speech_to_text()
+        contact_info = ''.join(filter(str.isdigit, contact_info))  # Remove non-digit characters
+        while not (len(contact_info) == 10):
+            speak("Please provide a valid 10-digit phone number.")
+            contact_info = speech_to_text()
+            contact_info = ''.join(filter(str.isdigit, contact_info))  # Remove non-digit characters
+        contact_info = int(contact_info)  # Convert to integer
         speak("Please provide your address.")
-        address = speech_to_text()  
+        address = speech_to_text()
         speak("Please describe the technical issue.")
-        issue_details = speech_to_text()  
+        issue_details = speech_to_text()
         speak("What is your preferred date and time for technician visit?")
-        preferred_time = speech_to_text()  
+        preferred_time = speech_to_text()
     elif intent == "technical_issue":
         speak("Please provide your full name.")
-        full_name = speech_to_text() 
+        full_name = speech_to_text()
         speak("Please provide your contact information.")
-        contact_info = speech_to_text()  
+        contact_info = speech_to_text()
+        contact_info = ''.join(filter(str.isdigit, contact_info))  # Remove non-digit characters
+        while not (len(contact_info) == 10):
+            speak("Please provide a valid 10-digit phone number.")
+            contact_info = speech_to_text()
+            contact_info = ''.join(filter(str.isdigit, contact_info))  # Remove non-digit characters
+        contact_info = int(contact_info)  # Convert to integer
         speak("Please provide your address.")
-        address = speech_to_text()  
+        address = speech_to_text()
         speak("Please describe the technical issue.")
-        issue_details = speech_to_text()  
+        issue_details = speech_to_text()
         speak("What is your preferred date and time for technician visit?")
-        preferred_time = speech_to_text()  
+        preferred_time = speech_to_text()
     else:
-        # Default values
         full_name = ""
         contact_info = ""
         address = ""
@@ -91,52 +88,69 @@ def extract_information(intent):
 
 
 def speak(text):
+    response_text.insert(tk.END, f"Assistant: {text}\n", "italic")
+    response_text.see(tk.END)
+    root.update()
     engine.say(text)
     engine.runAndWait()
 
-# Inside the main function
-if __name__ == "__main__":
-    all_user_data = []
-    all_user_data.extend(load_existing_data())  # Load existing user data
-    
-    while True:
-        speak("Press Enter to start speaking...")
-        input("Press Enter to start speaking...")
-        audio_text = speech_to_text()
-        print("Recognized Text:", audio_text)  # Print the recognized text for debugging
-        if audio_text:
-            intent = analyze_intent(audio_text)
-            print("Recognized Intent:", intent)
-            params = {"q": audio_text}  # Include the audio text in the params
-            if intent == "warranty_claim":
-                speak("Please provide your full name.")
-                full_name = speech_to_text()
-                speak("Please provide your contact information.")
-                contact_info = speech_to_text()
-                speak("Please provide your address.")
-                address = speech_to_text()
-                speak("Thank you. Your information has been recorded.")
-            elif intent == "technical_issue":
-                speak("Please describe the technical issue.")
-                issue_details = speech_to_text()
-                speak("What is your preferred date and time for technician visit?")
-                preferred_time = speech_to_text()
-                speak("Thank you. Your information has been recorded.")
-            else:
-                speak("Sorry, I couldn't understand your request.")
-
-            # Extract information based on intent and append it to the list
+def process_request():
+    audio_text = speech_to_text()
+    if audio_text:
+        intent = analyze_intent(audio_text)
+        response_text.insert(tk.END, f"Recognized Intent: {intent}\n", "normal")
+        root.update()
+        params = {"q": audio_text}
+        if intent == "warranty_claim" or intent == "technical_issue":
             full_name, contact_info, address, issue_details, preferred_time = extract_information(intent)
-            user_data = {
-                "intent": intent,
-                "full_name": full_name,
-                "contact_info": contact_info,
-                "address": address,
-                "issue_details": issue_details,
-                "preferred_time": preferred_time
-            }
-            all_user_data.append(user_data)
+            speak("Thank you. Your information has been recorded.")
+            extracted_info.set(f"Full Name: {full_name}\nContact Information: {contact_info}\nAddress: {address}\nIssue Details: {issue_details}\nPreferred Time: {preferred_time}")
+            save_to_json(full_name, contact_info, address, issue_details, preferred_time)
+        else:
+            speak("Sorry, I couldn't understand your request.")
+            extracted_info.set("")
 
-            # Save all user data to the JSON file
-            save_user_data()
+def save_to_json(full_name, contact_info, address, issue_details, preferred_time):
+    data = {
+        "Full Name": full_name,
+        "Contact Information": contact_info,
+        "Address": address,
+        "Issue Details": issue_details,
+        "Preferred Time": preferred_time
+    }
+    with open("user_data.json", "a") as file:
+        json.dump(data, file, indent=4)
+        file.write("\n")
 
+root = tk.Tk()
+root.title("Customer Virtual Assistant")
+
+# Styles
+style = ttk.Style()
+style.configure("Bold.TLabel", font=("Helvetica", 12, "bold"))
+style.configure("Normal.TLabel", font=("Helvetica", 10))
+style.configure("Italic.TLabel", font=("Helvetica", 10, "italic"))
+
+# Header
+header_label = ttk.Label(root, text="Customer Virtual Assistant", style="Bold.TLabel")
+header_label.grid(row=0, column=0, columnspan=2, pady=10)
+
+# Load Image
+img = Image.open(r"C:\Users\Lucky\Documents\Coherence 1.0\cocru\mic_icon.png")
+img = img.resize((50, 50))  # Resize the image
+img = ImageTk.PhotoImage(img)
+
+# Button
+button = ttk.Button(root, image=img, command=process_request)
+button.grid(row=1, column=0, columnspan=2, pady=5)
+
+# Response Text
+response_text = scrolledtext.ScrolledText(root, width=50, height=10)
+response_text.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
+
+# Extracted Info
+extracted_info = tk.StringVar()
+info_label = ttk.Label(root, textvariable=extracted_info, style="Normal.TLabel")
+info_label.grid(row=3, column=0, columnspan=2, padx=10, pady=5)
+
+root.mainloop()
